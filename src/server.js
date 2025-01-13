@@ -17,7 +17,7 @@ const server = createServer(app)
 app.use(cookieParser());
 
 const corsOptions = {
-    origin: 'http://localhost:5173',
+    origin: 'https://pdf-uploader-abinsajs-projects.vercel.app',
     credentials: true,
 };
 

@@ -7,6 +7,7 @@ import uploadPDF from "../Config/cloudinaryConfig.js"
 import pdfModel from "../Models/pdfSchema.js"
 import axios from 'axios'
 import { PDFDocument } from 'pdf-lib'
+import otpModel from "../Models/otpSchema.js"
 
 const registerUserhelper = async (data) => {
     try {
@@ -52,24 +53,61 @@ const registerUserhelper = async (data) => {
     }
 }
 
+const sendOtpHelper = async(email)=>{
+    try {
+        const userInfo = await userModel.findOne({email: email})
+        if(userInfo){
+            throw AppError.conflict('User Already Exist')
+        }
+        const generateOtp = Math.floor(100000 + Math.random() * 900000).toString()
+        const sendMail = await sendOTPMail(email, generateOtp)
+        if(!sendMail){
+            throw AppError.badRequest('Otp send failed')
+        }
+        const create = await otpModel.create({
+            otp: generateOtp,
+            email: email
+        })
+        console.log(create,'aksfhlqiwfhiowehfg')
+        if (!create) {
+            throw AppError.conflict('Something went wrong try again later')
+        }
+        
+        return {success: true}
+    } catch (error) {
+        if (error instanceof AppError) {
+            throw error
+        } else {
+            throw new AppError('Failed to register user',
+                500,
+                error.message || 'An unexpected error occured'
+            )
+        }
+    }
+}
+
 const verifyOtpHelper = async (otp, data) => {
     try {
-        console.log('its hreree')
-        console.log(otp,'=-=-=-==-==-==-=-==-',data.generateOtp,'this is the otps')
-        const currentTime = new Date()
-        const expiryTime = new Date(data.otp_time)
-        if (currentTime > expiryTime) {
-            console.log('time sxpired')
+        console.log( otp,'this is the otp',data,'its hreree')
+        
+        // const currentTime = new Date()
+        // const expiryTime = new Date(data.otp_time)
+
+
+        const generatedOtp = await otpModel.findOne({email: data.email})
+        console.log(generatedOtp)
+        if (!generatedOtp) {
+            console.log('time expired')
             throw AppError.notFound('Otp has been expired')
         }
-        if (otp !== data.generateOtp) {
+        if (parseInt(otp) !== generatedOtp.otp) {
             throw AppError.badRequest('Wrong OTP')
         }
-        console.log('otp is correct')
+        const password = await bcrypt.hash(data.password,10)
         const userInfo = {
             name: data.name,
             email: data.email,
-            password: data.hashPassword
+            password: password
         }
 
         await userModel.create(userInfo)
@@ -194,5 +232,6 @@ export default {
     verifyOtpHelper,
     verifyLoginHelper,
     pdfUploadhelper,
-    extractPages
+    extractPages,
+    sendOtpHelper
 }

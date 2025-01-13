@@ -1,6 +1,27 @@
 import userHelper from "../HelperFunction/userHelper.js"
 import AppError from "../utils/AppError.js"
 
+const sendOtp = async(req,res)=>{
+    try {
+        const {email} = req.body;
+        const result = await userHelper.sendOtpHelper(email)
+
+            res.status(200).json(result)
+    } catch (error) {
+        if(error instanceof AppError){
+            res.status(error.statusCode).json({
+                success: false,
+                message: error.message
+            })
+        }else{
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Internal server Error'
+            })
+        }
+    }
+}
+
 const registerClient = async(req, res)=>{
     try {
         const {data}= req.body
@@ -34,8 +55,9 @@ const registerClient = async(req, res)=>{
 
 const verifyOtp = async(req,res)=>{
     try {
+        console.log(req.body,'this is the data')
         const {otp} = req.body
-        const data = req.cookies.signupData
+        const {data} = req.body
         console.log(data,'this is the data')
         const result = await userHelper.verifyOtpHelper(otp, data)
         if(result){
@@ -134,5 +156,6 @@ export default {
     verifyOtp,
     verifyLogin,
     pdfUpload,
-    getSelectedPage
+    getSelectedPage,
+    sendOtp
 }
